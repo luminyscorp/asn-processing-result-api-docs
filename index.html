@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Business Central ASN Processing Result API integration guide">
+  <title>ASN Processing Result API</title>
+  <style>
+    :root{--navy:#102a43;--blue:#1769aa;--teal:#0f8b8d;--ink:#243b53;--muted:#627d98;--line:#d9e2ec;--bg:#f4f7fa;--white:#fff;--code:#10212f;--red:#c92a2a;--green:#087f5b}
+    *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.65 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}a{color:var(--blue)}
+    header{padding:56px 24px 64px;color:#fff;background:radial-gradient(circle at 85% 20%,rgba(45,212,191,.24),transparent 25rem),linear-gradient(135deg,#0b2033,#123f62 58%,#0f6f78)}
+    .wrap{width:min(1080px,calc(100% - 40px));margin:auto}.eyebrow{color:#80e1d1;font-size:12px;font-weight:800;letter-spacing:.14em;text-transform:uppercase}h1{margin:9px 0 14px;font-size:clamp(34px,6vw,58px);line-height:1.08;letter-spacing:-.04em}.lead{max-width:760px;margin:0;color:#d9edf6;font-size:18px}.badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:24px}.badge{border:1px solid rgba(255,255,255,.28);border-radius:999px;background:rgba(255,255,255,.09);padding:5px 11px;font-size:13px}
+    .layout{display:grid;grid-template-columns:210px minmax(0,1fr);gap:28px;padding:34px 0 65px}nav{position:sticky;top:18px;align-self:start;border:1px solid var(--line);border-radius:14px;background:#fff;padding:13px}nav a{display:block;border-radius:8px;padding:7px 9px;color:var(--muted);text-decoration:none}nav a:hover{background:#edf5fa;color:var(--navy)}main{min-width:0}section{scroll-margin-top:16px;margin-bottom:20px;border:1px solid var(--line);border-radius:16px;background:#fff;padding:25px;box-shadow:0 5px 20px rgba(16,42,67,.045)}h2{margin:0 0 12px;color:var(--navy);font-size:24px;letter-spacing:-.02em}h3{margin:21px 0 8px;color:var(--navy);font-size:17px}p{margin:8px 0 14px}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.card{border:1px solid var(--line);border-radius:12px;background:#f8fbfd;padding:14px}.card strong{display:block;color:var(--navy);font-size:16px}.callout{border-left:4px solid var(--teal);border-radius:7px;background:#ebf8f7;padding:12px 14px}.warning{border-left-color:#f59f00;background:#fff9db}.danger{border-left-color:var(--red);background:#fff5f5}
+    code{border-radius:5px;background:#edf2f7;padding:.1em .35em;font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}pre{overflow:auto;border-radius:12px;background:var(--code);color:#d9e7ef;padding:18px;font:13px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}pre code{background:transparent;padding:0;color:inherit}table{width:100%;border-collapse:collapse;font-size:14px}th,td{border-bottom:1px solid var(--line);padding:10px 8px;text-align:left;vertical-align:top}th{background:#f8fafc;color:var(--navy)}ol{padding-left:23px}li{padding:3px 0}.state{display:inline-block;min-width:88px;border-radius:999px;padding:2px 9px;text-align:center;font-size:12px;font-weight:750}.wait{color:#a05a00;background:#fff4e6}.fail{color:var(--red);background:#fff0f0}.ok{color:var(--green);background:#e6fcf5}footer{padding:0 0 45px;color:var(--muted);text-align:center;font-size:13px}
+    @media(max-width:780px){.layout{grid-template-columns:1fr}nav{position:static;display:grid;grid-template-columns:1fr 1fr}.grid{grid-template-columns:1fr}section{padding:20px}}
+  </style>
+</head>
+<body>
+  <header><div class="wrap">
+    <div class="eyebrow">Business Central Integration</div>
+    <h1>ASN Processing Result API</h1>
+    <p class="lead">供 SRM 查询 ASN 在 Business Central 中的后续处理状态、失败阶段和完整错误原因。只读接口，不负责上传、重试、取消或删除 ASN。</p>
+    <div class="badges"><span class="badge">Publisher: art</span><span class="badge">Group: integration</span><span class="badge">Version: v1.0</span><span class="badge">Entity: asnProcessingResults</span></div>
+  </div></header>
+  <div class="wrap layout">
+    <nav><a href="#boundary">接口边界</a><a href="#endpoint">Endpoint</a><a href="#request-id">Request ID</a><a href="#flow">SRM 流程</a><a href="#fields">字段</a><a href="#states">状态</a><a href="#example">示例</a></nav>
+    <main>
+      <section id="boundary"><h2>接口边界</h2>
+        <div class="grid"><div class="card"><strong>Validation API</strong>验证 Excel 并导入 ASN staging tables。</div><div class="card"><strong>Result API</strong>报告 PO 过账、TO 创建和 reconciliation 结果。</div><div class="card"><strong>Read only</strong>不执行写入或重试操作。</div></div>
+        <p class="callout"><code>asnValidationRequests = Passed</code> 只代表文件验证和导入成功，不代表 Purchase Order 或 Transfer Order 已处理成功。</p>
+      </section>
+      <section id="endpoint"><h2>Endpoint</h2>
+        <pre><code>GET https://api.businesscentral.dynamics.com/v2.0/{tenantId}/{environment}/api/art/integration/v1.0/companies({companyId})/asnProcessingResults</code></pre>
+        <p>使用与 <code>asnValidationRequests</code> 相同的 Microsoft Entra / Business Central OAuth 身份验证及公司上下文。</p>
+      </section>
+      <section id="request-id"><h2>Request ID 是什么？</h2>
+        <p>SRM 创建 <code>asnValidationRequests</code> 后，BC 返回记录中的 <code>id</code> 就是 Request ID。它不是文件名、DOCUMENT NUM 或 Invoice Number。</p>
+        <pre><code>{
+  "id": "{validation-request-guid}",
+  "fileName": "example.xlsx",
+  "status": "Pending"
+}</code></pre>
+        <p>后续将这个 <code>id</code> 作为 <code>sourceRequestId</code> 查询：</p>
+        <pre><code>GET .../asnProcessingResults?$filter=sourceRequestId eq {validation-request-guid}</code></pre>
+        <p class="callout warning">一个 Excel 可以包含多个 DOCUMENT NUM，因此一个 Request ID 可能返回多条 ASN Processing Result。</p>
+      </section>
+      <section id="flow"><h2>SRM 推荐流程</h2>
+        <ol><li>创建 <code>asnValidationRequests</code> 并上传 Excel。</li><li>轮询 Validation Request，直到 <code>Passed</code> 或 <code>Failed</code>。</li><li>Validation 失败时显示 <code>validationResult</code>，停止后续处理。</li><li>Validation 通过后，用返回的 <code>id</code> 查询 <code>asnProcessingResults</code>。</li><li>任何结果 <code>isTerminal=false</code> 时继续轮询。</li><li><code>Failed</code> 或 <code>NeedsReview</code> 时显示 <code>failureStage</code> 与 <code>errorMessage</code>。</li><li>所有结果均为 <code>Succeeded</code> 后，才显示 ASN 处理完成。</li></ol>
+        <p class="callout warning">Validation 刚通过时结果可能暂时为空，因为后续 Job Queue 是异步处理。空数组不是失败，应稍后重试。</p>
+      </section>
+      <section id="fields"><h2>核心字段</h2><table><thead><tr><th>字段</th><th>含义及用法</th></tr></thead><tbody>
+        <tr><td><code>sourceRequestId</code></td><td>Validation Request 的 ID；推荐查询条件。</td></tr><tr><td><code>documentNo</code></td><td>Excel 中的 DOCUMENT NUM。</td></tr><tr><td><code>processingState</code></td><td>稳定的 SRM 流程状态，程序判断的主字段。</td></tr><tr><td><code>isTerminal</code></td><td><code>true</code> 时停止轮询此 ASN。</td></tr><tr><td><code>failureStage</code></td><td>PostPurchaseOrder、CreateTransferOrder 或 Reconciliation。</td></tr><tr><td><code>errorMessage</code></td><td>BC 保存的最新完整错误，应展示给用户并记录日志。</td></tr><tr><td><code>status</code></td><td>BC 内部详细状态，仅用于展示，不建议作为主流程判断。</td></tr><tr><td><code>attemptCount</code></td><td>处理尝试次数，用于审计。</td></tr>
+      </tbody></table></section>
+      <section id="states"><h2>状态判断</h2><table><thead><tr><th>processingState</th><th>isTerminal</th><th>SRM 行为</th></tr></thead><tbody>
+        <tr><td><span class="state wait">Pending</span></td><td>false</td><td>继续轮询。</td></tr><tr><td><span class="state wait">InProgress</span></td><td>false</td><td>显示处理中并继续轮询。</td></tr><tr><td><span class="state fail">Failed</span></td><td>true</td><td>显示失败阶段和错误信息。</td></tr><tr><td><span class="state fail">NeedsReview</span></td><td>true</td><td>停止自动处理并提示人工检查。</td></tr><tr><td><span class="state ok">Succeeded</span></td><td>true</td><td>显示成功。</td></tr><tr><td><span class="state wait">Canceled</span></td><td>true</td><td>显示已取消。</td></tr>
+      </tbody></table><p class="callout warning">BC 枚举空格在 OData JSON 中可能编码为 <code>_x0020_</code>，如 <code>Post_x0020_PO_x0020_Error</code>。请用 <code>processingState</code> 和 <code>failureStage</code> 做程序判断。</p></section>
+      <section id="example"><h2>失败返回示例</h2><pre><code>{
+  "sourceRequestId": "{validation-request-guid}",
+  "documentNo": "VN-EXAMPLE-1",
+  "status": "Post_x0020_PO_x0020_Error",
+  "processingState": "Failed",
+  "isTerminal": true,
+  "failureStage": "PostPurchaseOrder",
+  "errorMessage": "The Bin does not exist. Identification fields and values: Location Code='IN-TRANSIT',Code=''",
+  "attemptCount": 1,
+  "originalLineCount": 4,
+  "targetLineCount": 4,
+  "errorLineCount": 4,
+  "purchaseOrderCount": 1,
+  "transferOrderCount": 0,
+  "warehouseReceiptCount": 0
+}</code></pre><p class="callout danger">本文档说明 BC API 契约，不代表任何特定 SRM 前端已经完成接入。</p></section>
+    </main>
+  </div>
+  <footer>Public API integration reference · No credentials, tenant IDs, company IDs, or access tokens are included.</footer>
+</body>
+</html>
